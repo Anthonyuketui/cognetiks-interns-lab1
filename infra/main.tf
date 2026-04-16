@@ -12,56 +12,60 @@ provider "azurerm" {
   subscription_id = "5683435d-2428-439a-b725-47a58f20022f"
 }
 
-# Use the existing resource group
-data "azurerm_resource_group" "rg" {
-  name = var.resource_group_name
+# Resource Group
+resource "azurerm_resource_group" "rg" {
+  name     = var.resource_group_name
+  location = var.location
 }
 
-# Use the existing container registry
-data "azurerm_container_registry" "acr" {
+# Container Registry
+resource "azurerm_container_registry" "acr" {
   name                = var.acr_name
-  resource_group_name = var.resource_group_name
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Standard"
+  admin_enabled       = true
 }
 
-# Log Analytics workspace (required by Container App Environment for logs)
+# Log Analytics Workspace
 resource "azurerm_log_analytics_workspace" "logs" {
   name                = var.log_analytics_name
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
-# Container App Environment (the hosting platform)
+# Container App Environment
 resource "azurerm_container_app_environment" "env" {
   name                       = "${var.app_name}-env"
-  location                   = var.location
-  resource_group_name        = var.resource_group_name
+  location                   = azurerm_resource_group.rg.location
+  resource_group_name        = azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
 }
 
-# Container App (your running application)
+# Container App
 resource "azurerm_container_app" "app" {
   name                         = var.app_name
   container_app_environment_id = azurerm_container_app_environment.env.id
-  resource_group_name          = var.resource_group_name
+  resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
 
   registry {
-    server               = data.azurerm_container_registry.acr.login_server
-    username             = data.azurerm_container_registry.acr.admin_username
+    server               = azurerm_container_registry.acr.login_server
+    username             = azurerm_container_registry.acr.admin_username
     password_secret_name = "acr-password"
   }
 
   secret {
     name  = "acr-password"
-    value = data.azurerm_container_registry.acr.admin_password
+    value = azurerm_container_registry.acr.admin_password
   }
 
   template {
     container {
       name   = var.app_name
-      image  = "${data.azurerm_container_registry.acr.login_server}/${var.image_name}:${var.image_tag}"
+      image  = "${azurerm_container_registry.acr.login_server}/${var.image_name}:${var.image_tag}"
       cpu    = 0.25
       memory = "0.5Gi"
 

@@ -4,7 +4,7 @@ A containerized FastAPI application deployed to Azure Container Apps using Terra
 
 **Intern:** Anthony Uketui
 **Cloud Platform:** Azure
-**Live URL:** https://lab1-anthony.jollydune-6b467ed5.westus2.azurecontainerapps.io
+**Live URL:** https://lab1-anthony.ashyocean-d74db9c0.westus2.azurecontainerapps.io
 
 > **Note:** The live URL may be unavailable if infrastructure has been destroyed to avoid ongoing Azure charges. To redeploy, follow the Terraform and CI/CD instructions below.
 
@@ -153,15 +153,21 @@ The `infra/` directory contains Terraform configuration for Azure.
 
 | Resource | Purpose |
 |----------|--------|
+| **Resource Group** | Contains all Azure resources for the project. Created and managed by Terraform. |
+| **Azure Container Registry (ACR)** | Stores Docker images. Created and managed by Terraform with admin access enabled. |
 | **Log Analytics Workspace** | Collects and stores container logs. Required by Azure Container App Environment. Logs retained for 30 days. |
 | **Container App Environment** | The hosting platform that provides shared networking, load balancing, and DNS for container apps. Similar to an ECS Cluster in AWS. |
 | **Container App** | The running application. Pulls the image from ACR, runs it with 0.25 CPU and 0.5Gi memory, and exposes it to the internet via ingress on port 8000. Can scale from 0 to 10 replicas based on traffic. |
 
-The **Resource Group** and **Azure Container Registry** are referenced as existing resources (created outside Terraform via Azure CLI).
+All resources are fully managed by Terraform — one `terraform apply` creates everything, one `terraform destroy` removes everything.
 
 ### How They Connect
 
 ```
+Resource Group
+        ↓ (contains)
+Azure Container Registry (ACR)
+        ↓ (stores images)
 Log Analytics Workspace
         ↓ (sends logs to)
 Container App Environment
@@ -270,9 +276,21 @@ Required GitHub Secrets (all are non-sensitive IDs, not passwords):
 To avoid ongoing charges, destroy all resources:
 
 ```bash
-# Option 1: Terraform (removes Container App, Environment, Log Analytics)
+# Terraform removes everything (Resource Group, ACR, Container App, Environment, Log Analytics)
 cd infra && terraform destroy
-
-# Option 2: Delete entire resource group (removes everything including ACR)
-az group delete --name cognetiksRG --yes
 ```
+
+---
+
+## Problems Encountered & Solutions
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| `docker push` failed with `insufficient_scope` | ACR was created with ABAC Repository Permissions mode, which requires extra repository-level permissions | Recreated ACR with standard RBAC mode (`LegacyRegistryPermissions`) |
+| Container App failed with `no child with platform linux/amd64` | Docker built the image for `linux/arm64` (Apple Silicon Mac) but Azure needs `linux/amd64` | Added `--platform linux/amd64` to the `docker build` command |
+| CSS not loading on deployed app (unstyled page) | FastAPI generated `http://` URLs for static files, but the app is served over `https://`. Browser blocked mixed content | Added `--proxy-headers` and `--forwarded-allow-ips *` to the Uvicorn command so it trusts the load balancer's forwarded headers |
+| `MissingSubscriptionRegistration` for `Microsoft.App` | Azure subscription hadn't registered the Container Apps resource provider | Ran `az provider register --namespace Microsoft.App` |
+| CSS changes not appearing after rebuild and deploy | Docker used cached layers from a previous build that still had the old CSS | Used `--no-cache` flag on `docker build` to force a clean rebuild |
+| `terraform apply` failed with "resource already exists" | A previous failed `terraform apply` created a broken resource in Azure that Terraform didn't track in its state | Deleted the broken resource with `az containerapp delete` then re-ran `terraform apply` |
+| `git push` rejected workflow file | GitHub OAuth token didn't have the `workflow` scope needed to push `.github/workflows/` files | Switched from HTTPS to SSH authentication for git |
+| ACR login expired during push | ACR access tokens are short-lived | Re-ran `az acr login --name cogneticsregistry` before pushing |
