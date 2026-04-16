@@ -39,7 +39,7 @@ GitHub Actions (OIDC → Azure)
 | `/health` | JSON health check endpoint returning `{"status": "healthy"}` with HTTP 200 |
 
 ### Homepage
-![Homepage](docs/images/homepage.png)
+![Homepage](docs/images/home.png)
 
 ### Health Check
 ![Health Check](docs/images/health.png)
