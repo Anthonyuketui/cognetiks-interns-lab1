@@ -1,0 +1,5 @@
+app_display_name = "Cloud Lab Starter App"
+intern_name      = "Your Name"
+cloud_platform   = "Azure"
+environment      = "dev"
+app_status       = "healthy"

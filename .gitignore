@@ -5,3 +5,9 @@ venv/
 *.pyc
 *.pyo
 *.pyd
+.env
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/terraform.tfvars
