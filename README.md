@@ -38,6 +38,12 @@ GitHub Actions (OIDC → Azure)
 | `/` | Homepage displaying app details (name, platform, environment, version, status) |
 | `/health` | JSON health check endpoint returning `{"status": "healthy"}` with HTTP 200 |
 
+### Homepage
+![Homepage](docs/images/homepage.png)
+
+### Health Check
+![Health Check](docs/images/health.png)
+
 ---
 
 ## Environment Variables
