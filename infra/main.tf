@@ -25,7 +25,7 @@ data "azurerm_container_registry" "acr" {
 
 # Log Analytics workspace (required by Container App Environment for logs)
 resource "azurerm_log_analytics_workspace" "logs" {
-  name                = "${var.app_name}-logs"
+  name                = var.log_analytics_name
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
@@ -65,12 +65,30 @@ resource "azurerm_container_app" "app" {
       cpu    = 0.25
       memory = "0.5Gi"
 
-      env { name = "APP_NAME" value = var.app_display_name }
-      env { name = "INTERN_NAME" value = var.intern_name }
-      env { name = "CLOUD_PLATFORM" value = var.cloud_platform }
-      env { name = "ENVIRONMENT" value = var.environment }
-      env { name = "APP_VERSION" value = var.image_tag }
-      env { name = "APP_STATUS" value = var.app_status }
+      env {
+        name  = "APP_NAME"
+        value = var.app_display_name
+      }
+      env {
+        name  = "INTERN_NAME"
+        value = var.intern_name
+      }
+      env {
+        name  = "CLOUD_PLATFORM"
+        value = var.cloud_platform
+      }
+      env {
+        name  = "ENVIRONMENT"
+        value = var.environment
+      }
+      env {
+        name  = "APP_VERSION"
+        value = var.image_tag
+      }
+      env {
+        name  = "APP_STATUS"
+        value = var.app_status
+      }
     }
   }
 

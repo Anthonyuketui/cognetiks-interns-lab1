@@ -22,6 +22,11 @@ variable "app_name" {
   default = "lab1-anthony"
 }
 
+variable "log_analytics_name" {
+  description = "Name of the Log Analytics workspace"
+  default     = "shredvarsity-logs"
+}
+
 variable "app_display_name" {
   description = "Display name shown on the homepage"
 }
